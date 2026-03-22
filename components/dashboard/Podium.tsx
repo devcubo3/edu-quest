@@ -8,6 +8,8 @@ interface RankingItem {
   coins: number;
   avatar: string;
   isMe?: boolean;
+  initials?: string;
+  colorClass?: string;
 }
 
 interface PodiumProps {
@@ -21,8 +23,8 @@ export const Podium: React.FC<PodiumProps> = ({ data }) => {
     <div className="grid grid-cols-3 gap-4 items-end mb-8 px-4 md:px-12">
         <div className="flex flex-col items-center">
             <div className="relative mb-2">
-                <div className="size-16 md:size-24 rounded-full border-4 border-zinc-200 overflow-hidden bg-zinc-100">
-                      <img src={data[1].avatar} className="w-full h-full object-cover" />
+                <div className={`size-16 md:size-24 rounded-full border-4 border-zinc-200 overflow-hidden flex items-center justify-center text-xl font-black ${!data[1].avatar ? (data[1].colorClass ?? 'bg-zinc-100 text-zinc-500') : 'bg-zinc-100'}`}>
+                  {data[1].avatar ? <img src={data[1].avatar} className="w-full h-full object-cover" /> : <span>{data[1].initials ?? data[1].name.charAt(0)}</span>}
                 </div>
                 <div className="absolute -bottom-2 inset-x-0 flex justify-center">
                     <span className="bg-zinc-200 text-zinc-600 size-6 md:size-8 rounded-full flex items-center justify-center font-black text-xs md:text-sm border-2 border-white shadow-sm">2</span>
@@ -35,8 +37,8 @@ export const Podium: React.FC<PodiumProps> = ({ data }) => {
         <div className="flex flex-col items-center -mt-8">
             <div className="relative mb-2">
                   <span className="absolute -top-6 text-2xl">👑</span>
-                <div className="size-20 md:size-32 rounded-full border-4 border-yellow-400 overflow-hidden bg-yellow-50 shadow-xl shadow-yellow-200">
-                    <img src={data[0].avatar} className="w-full h-full object-cover" />
+                <div className={`size-20 md:size-32 rounded-full border-4 border-yellow-400 overflow-hidden shadow-xl shadow-yellow-200 flex items-center justify-center text-2xl font-black ${!data[0].avatar ? (data[0].colorClass ?? 'bg-yellow-50 text-yellow-700') : 'bg-yellow-50'}`}>
+                  {data[0].avatar ? <img src={data[0].avatar} className="w-full h-full object-cover" /> : <span>{data[0].initials ?? data[0].name.charAt(0)}</span>}
                 </div>
                 <div className="absolute -bottom-3 inset-x-0 flex justify-center">
                     <span className="bg-yellow-400 text-yellow-900 size-8 md:size-10 rounded-full flex items-center justify-center font-black text-sm md:text-lg border-4 border-white shadow-sm">1</span>
@@ -48,15 +50,15 @@ export const Podium: React.FC<PodiumProps> = ({ data }) => {
 
         <div className="flex flex-col items-center">
             <div className="relative mb-2">
-                <div className="size-16 md:size-24 rounded-full border-4 border-amber-600 overflow-hidden bg-amber-50">
-                    <img src={data[3].avatar} className="w-full h-full object-cover" />
+                <div className={`size-16 md:size-24 rounded-full border-4 border-amber-600 overflow-hidden flex items-center justify-center text-xl font-black ${!data[2].avatar ? (data[2].colorClass ?? 'bg-amber-50 text-amber-700') : 'bg-amber-50'}`}>
+                  {data[2].avatar ? <img src={data[2].avatar} className="w-full h-full object-cover" /> : <span>{data[2].initials ?? data[2].name.charAt(0)}</span>}
                 </div>
                 <div className="absolute -bottom-2 inset-x-0 flex justify-center">
                     <span className="bg-amber-600 text-amber-100 size-6 md:size-8 rounded-full flex items-center justify-center font-black text-xs md:text-sm border-2 border-white shadow-sm">3</span>
                 </div>
             </div>
-            <p className="font-bold text-sm text-center truncate w-full">{data[3].name}</p>
-            <p className="text-xs font-black text-primary">{data[3].coins}</p>
+            <p className="font-bold text-sm text-center truncate w-full">{data[2].name}</p>
+            <p className="text-xs font-black text-primary">{data[2].coins}</p>
         </div>
     </div>
   );

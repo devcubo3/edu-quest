@@ -1,85 +1,159 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '../../components/layout/Header';
 import { Button } from '../../components/ui/Button';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Podium } from '../../components/dashboard/Podium';
 import { RankingTable } from '../../components/dashboard/RankingTable';
-import { MOCK_STUDENT_USER } from '../../constants';
+import { useAuth } from '../../context/AuthContext';
+import { useStudents } from '../../context/StudentsContext';
+import { useTransactions } from '../../context/TransactionsContext';
 
-const RANKING_DATA = [
-    { rank: 1, name: 'Marcus Thorne', class: 'Turma 10-A', coins: 4820, avatar: 'https://i.pravatar.cc/150?u=1' },
-    { rank: 2, name: 'Elena Rodriguez', class: 'Turma 10-B', coins: 4650, avatar: 'https://i.pravatar.cc/150?u=2' },
-    { rank: 3, name: 'Alex Johnson (Você)', class: 'Turma 10-A', coins: 2450, avatar: MOCK_STUDENT_USER.avatar, isMe: true },
-    { rank: 4, name: 'Sarah Chen', class: 'Turma 10-C', coins: 2310, avatar: 'https://i.pravatar.cc/150?u=4' },
-    { rank: 5, name: 'James Wilson', class: 'Turma 10-A', coins: 2100, avatar: 'https://i.pravatar.cc/150?u=5' },
-    { rank: 6, name: 'Maria Garcia', class: 'Turma 10-B', coins: 1950, avatar: 'https://i.pravatar.cc/150?u=6' },
-    { rank: 7, name: 'David Kim', class: 'Turma 10-A', coins: 1800, avatar: 'https://i.pravatar.cc/150?u=7' },
-    { rank: 8, name: 'Lisa Wang', class: 'Turma 10-C', coins: 1650, avatar: 'https://i.pravatar.cc/150?u=8' },
-    { rank: 9, name: 'Robert Smith', class: 'Turma 10-B', coins: 1500, avatar: 'https://i.pravatar.cc/150?u=9' },
-    { rank: 10, name: 'Jennifer Lopez', class: 'Turma 10-A', coins: 1350, avatar: 'https://i.pravatar.cc/150?u=10' },
-];
+const PERIOD_LABELS: Record<string, string> = {
+  weekly: 'Esta Semana',
+  monthly: 'Este Mês',
+  all: 'Todo o Período',
+};
+
+const PERIOD_MS: Record<string, number> = {
+  weekly: 7 * 24 * 60 * 60 * 1000,
+  monthly: 30 * 24 * 60 * 60 * 1000,
+};
 
 export const StudentRanking: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { students } = useStudents();
+  const { transactions } = useTransactions();
   const [scope, setScope] = useState<'class' | 'global'>('global');
-  const [period, setPeriod] = useState<'weekly' | 'monthly' | 'all'>('weekly');
+  const [period, setPeriod] = useState<'weekly' | 'monthly' | 'all'>('all');
+  const [showPeriodMenu, setShowPeriodMenu] = useState(false);
+  const periodRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handle = (e: MouseEvent) => {
+      if (periodRef.current && !periodRef.current.contains(e.target as Node)) {
+        setShowPeriodMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handle);
+    return () => document.removeEventListener('mousedown', handle);
+  }, []);
+
+  const rankingData = useMemo(() => {
+    // Filter by scope
+    const filtered = scope === 'class'
+      ? students.filter(s => s.class.toLowerCase() === (user?.class ?? '').toLowerCase())
+      : students;
+
+    if (period === 'all') {
+      // Total balance ranking
+      return [...filtered]
+        .sort((a, b) => b.coins - a.coins)
+        .map((s, i) => ({
+          rank: i + 1,
+          name: s.name,
+          class: s.class ? `Turma ${s.class}` : 'Sem turma',
+          coins: s.coins,
+          avatar: s.avatar || '',
+          initials: s.initials,
+          colorClass: s.colorClass,
+          isMe: s.id === user?.id,
+        }));
+    }
+
+    // Period-based ranking: sum credit transactions within the period
+    const now = Date.now();
+    const cutoff = now - PERIOD_MS[period];
+    const periodCredits = transactions.filter(
+      t => t.type === 'credit' && t.dateMs && t.dateMs >= cutoff
+    );
+
+    // Sum credits per student name
+    const coinsByName = new Map<string, number>();
+    periodCredits.forEach(t => {
+      coinsByName.set(t.studentName, (coinsByName.get(t.studentName) ?? 0) + t.amount);
+    });
+
+    return [...filtered]
+      .map(s => ({ ...s, periodCoins: coinsByName.get(s.name) ?? 0 }))
+      .sort((a, b) => b.periodCoins - a.periodCoins)
+      .map((s, i) => ({
+        rank: i + 1,
+        name: s.name,
+        class: s.class ? `Turma ${s.class}` : 'Sem turma',
+        coins: s.periodCoins,
+        avatar: s.avatar || '',
+        initials: s.initials,
+        colorClass: s.colorClass,
+        isMe: s.id === user?.id,
+      }));
+  }, [students, user, scope, period, transactions]);
 
   return (
     <div className="h-full flex flex-col bg-white">
       <Header />
-      
+
       <main className="flex-1 overflow-y-auto p-8 lg:p-12 bg-background-light">
-         <div className="max-w-4xl mx-auto w-full space-y-8">
-            
-            <PageHeader 
-              title="Classificação" 
-              subtitle="Ranking & Competição" 
-              action={
-                <Button variant="secondary" size="sm" icon="arrow_back" onClick={() => navigate('/student/dashboard')}>
-                    Voltar
-                </Button>
-              }
-            />
+        <div className="max-w-4xl mx-auto w-full space-y-8">
 
-            {/* Control Bar */}
-            <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-                
-                {/* Scope Toggle */}
-                <div className="bg-white p-1 rounded-full border border-zinc-200 flex shadow-sm">
-                    <button 
-                        onClick={() => setScope('global')}
-                        className={`px-6 py-2 rounded-full text-xs font-bold uppercase tracking-wide transition-all ${scope === 'global' ? 'bg-black text-white shadow-md' : 'text-zinc-500 hover:text-black'}`}
-                    >
-                        Global
-                    </button>
-                    <button 
-                        onClick={() => setScope('class')}
-                        className={`px-6 py-2 rounded-full text-xs font-bold uppercase tracking-wide transition-all ${scope === 'class' ? 'bg-black text-white shadow-md' : 'text-zinc-500 hover:text-black'}`}
-                    >
-                        Minha Turma
-                    </button>
-                </div>
+          <PageHeader
+            title="Classificação"
+            subtitle="Ranking & Competição"
+            action={
+              <Button variant="secondary" size="sm" icon="arrow_back" onClick={() => navigate('/student/dashboard')}>
+                Voltar
+              </Button>
+            }
+          />
 
-                {/* Period Select */}
-                <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Período:</span>
-                    <select 
-                        className="bg-white border border-zinc-200 text-sm font-bold rounded-full px-4 py-2 focus:ring-2 focus:ring-primary outline-none cursor-pointer hover:border-black transition-colors"
-                        value={period}
-                        onChange={(e) => setPeriod(e.target.value as any)}
-                    >
-                        <option value="weekly">Esta Semana</option>
-                        <option value="monthly">Este Mês</option>
-                        <option value="all">Todo o Período</option>
-                    </select>
-                </div>
+          {/* Control Bar */}
+          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+            <div className="bg-white p-1 rounded-full border border-zinc-200 flex shadow-sm">
+              <button
+                onClick={() => setScope('global')}
+                className={`px-6 py-2 rounded-full text-xs font-bold uppercase tracking-wide transition-all ${scope === 'global' ? 'bg-black text-white shadow-md' : 'text-zinc-500 hover:text-black'}`}
+              >
+                Global
+              </button>
+              <button
+                onClick={() => setScope('class')}
+                className={`px-6 py-2 rounded-full text-xs font-bold uppercase tracking-wide transition-all ${scope === 'class' ? 'bg-black text-white shadow-md' : 'text-zinc-500 hover:text-black'}`}
+              >
+                Minha Turma
+              </button>
             </div>
 
-            <Podium data={RANKING_DATA} />
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Período:</span>
+              <div ref={periodRef} className="relative">
+                <button
+                  onClick={() => setShowPeriodMenu(p => !p)}
+                  className="bg-white border border-zinc-200 text-sm font-bold rounded-full px-5 py-2 outline-none cursor-pointer hover:border-black transition-colors"
+                >
+                  {PERIOD_LABELS[period]}
+                </button>
+                {showPeriodMenu && (
+                  <div className="absolute top-full mt-2 right-0 bg-white border border-zinc-200 rounded-2xl shadow-lg overflow-hidden z-20 min-w-[160px]">
+                    {Object.entries(PERIOD_LABELS).map(([key, label]) => (
+                      <button
+                        key={key}
+                        onClick={() => { setPeriod(key as 'weekly' | 'monthly' | 'all'); setShowPeriodMenu(false); }}
+                        className={`w-full text-left px-5 py-3 text-sm font-bold hover:bg-zinc-50 transition-colors ${period === key ? 'text-black' : 'text-zinc-400'}`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
 
-            <RankingTable data={RANKING_DATA} />
-         </div>
+          {rankingData.length >= 3 && <Podium data={rankingData} />}
+          <RankingTable data={rankingData} />
+
+        </div>
       </main>
     </div>
   );

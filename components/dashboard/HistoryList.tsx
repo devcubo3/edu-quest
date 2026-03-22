@@ -6,6 +6,7 @@ interface HistoryItem {
   icon: string;
   title: string;
   date: string;
+  dateMs?: number;
   displayDate: string;
   amount: string;
   type: string;

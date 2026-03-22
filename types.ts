@@ -27,6 +27,7 @@ export interface Student {
 export interface Transaction {
   id: string;
   timestamp: string;
+  dateMs?: number;
   studentName: string;
   studentInitials: string;
   studentClass: string;

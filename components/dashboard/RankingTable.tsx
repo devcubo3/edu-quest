@@ -8,6 +8,8 @@ interface RankingItem {
   coins: number;
   avatar: string;
   isMe?: boolean;
+  initials?: string;
+  colorClass?: string;
 }
 
 interface RankingTableProps {
@@ -33,8 +35,11 @@ export const RankingTable: React.FC<RankingTableProps> = ({ data }) => {
                         </td>
                         <td className="px-6 py-4">
                             <div className="flex items-center gap-4">
-                                <div className={`size-10 rounded-full border-2 ${item.isMe ? 'border-primary' : 'border-zinc-100'}`}>
-                                    <img src={item.avatar} alt={item.name} className="w-full h-full object-cover rounded-full"/>
+                                <div className={`size-10 rounded-full border-2 flex items-center justify-center text-xs font-bold overflow-hidden ${item.isMe ? 'border-primary' : 'border-zinc-100'} ${!item.avatar ? (item.colorClass ?? 'bg-zinc-100 text-zinc-500') : 'bg-zinc-100'}`}>
+                                    {item.avatar
+                                      ? <img src={item.avatar} alt={item.name} className="w-full h-full object-cover rounded-full"/>
+                                      : <span>{item.initials ?? item.name.charAt(0)}</span>
+                                    }
                                 </div>
                                 <div>
                                     <p className={`text-sm font-bold ${item.isMe ? 'text-primary' : 'text-black'}`}>

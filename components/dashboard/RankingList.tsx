@@ -10,6 +10,8 @@ interface RankingItem {
   active?: boolean;
   avatar?: string;
   subtitle?: string;
+  initials?: string;
+  colorClass?: string;
 }
 
 interface RankingListProps {
@@ -58,8 +60,10 @@ export const RankingList: React.FC<RankingListProps> = ({
                 >
                   {student.rank}
                 </div>
-                <div className="size-10 bg-zinc-200 rounded-full overflow-hidden mr-4">
-                  <img src={student.avatar || `https://i.pravatar.cc/150?u=${student.name}`} alt={student.name} className="w-full h-full object-cover" />
+                <div className={`size-10 rounded-full overflow-hidden mr-4 flex items-center justify-center text-xs font-bold ${student.colorClass || 'bg-zinc-100 text-zinc-500'}`}>
+                  {student.avatar
+                    ? <img src={student.avatar} alt={student.name} className="w-full h-full object-cover" />
+                    : student.initials || student.name.split(' ').map(w => w[0]).join('').slice(0, 2)}
                 </div>
                 <div className="flex-1">
                   <h4 className="font-bold text-sm">{student.name}</h4>
@@ -106,12 +110,11 @@ export const RankingList: React.FC<RankingListProps> = ({
                         <span className={`text-xs font-black ${idx === 0 ? 'text-yellow-500 text-base' : 'text-zinc-500'}`}>#{item.rank}</span>
                       </td>
                       <td className="px-6 py-4 flex items-center gap-3">
-                        <div className={`size-8 rounded-full border-2 flex items-center justify-center font-bold text-[10px] ${item.active ? 'border-primary' : 'border-white'} ${item.color || 'bg-zinc-100 text-zinc-500'} overflow-hidden`}>
-                          {item.active && item.avatar ? (
-                              <img src={item.avatar} alt="Me" className="w-full h-full object-cover" />
-                          ) : (
-                              item.name.charAt(0)
-                          )}
+                        <div className={`size-8 rounded-full border-2 flex items-center justify-center font-bold text-[10px] ${item.active ? 'border-primary' : 'border-white'} ${item.colorClass || item.color || 'bg-zinc-100 text-zinc-500'} overflow-hidden`}>
+                          {item.avatar
+                            ? <img src={item.avatar} alt={item.name} className="w-full h-full object-cover" />
+                            : (item.initials || item.name.charAt(0))
+                          }
                         </div>
                         <span className={`text-sm font-bold ${item.active ? 'text-primary' : 'text-zinc-700'}`}>{item.name}</span>
                       </td>
